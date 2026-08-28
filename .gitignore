@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+.venv/
+.env
+*.egg-info/
+.DS_Store
+test_data/_tmp_lines/
+data/
+
+# Артефакты эксперимента с PyInstaller и логи сборки: dist/pipeline.exe — 101 МБ,
+# build/ — ещё 126 МБ. Сами файлы оставлены на диске как есть, но в форк им
+# не нужно (.dockerignore исключает их и из контекста сборки образов).
+build/
+dist/
+*.log

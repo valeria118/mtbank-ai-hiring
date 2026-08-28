@@ -1,0 +1,44 @@
+# HTTPS-фронт живого демо. Caddy сам получает и продлевает сертификат
+# Let's Encrypt для {$DEMO_HOSTNAME} — отдельного шага с certbot нет.
+#
+# Один хост, три пути — потому что сертификат Let's Encrypt выдаётся на имя,
+# а не на IP, и заводить три имени ради демо незачем:
+#
+#   /         -> OpenWebUI          (главный сценарий ТЗ: чат с вложением)
+#   /api/*    -> FastAPI            (/analyze, /trends, /docs, /ws/transcribe)
+#   /grafana  -> Grafana            (бонусное задание: дашборд)
+#
+# Порт 9099 (сервер Pipelines) наружу НЕ отдаётся сознательно: его маршруты
+# /{id}/valves и /{id}/valves/update объявлены без аутентификации, см.
+# комментарий в pipeline.py. OpenWebUI ходит туда по внутренней сети compose.
+
+{$DEMO_HOSTNAME} {
+	encode zstd gzip
+
+	# Анализ пятиминутного файла на CPU идёт минутами. Дефолтных таймаутов
+	# Caddy на проксирование нет, но заголовки клиента он читает с лимитом —
+	# поднимаем его, чтобы загрузка крупного аудио не обрывалась.
+	request_body {
+		max_size 100MB
+	}
+
+	# REST API. handle_path срезает префикс: /api/analyze -> /analyze.
+	# Чтобы при этом не разъехался Swagger (он строит ссылку на
+	# /openapi.json от корня), сервису передаётся API_ROOT_PATH=/api —
+	# FastAPI подставит префикс сам, см. docker-compose.prod.yml.
+	handle_path /api/* {
+		reverse_proxy api:8080
+	}
+
+	# Grafana. Ей нужно знать свой внешний адрес и что она живёт в
+	# подкаталоге, иначе редиректы уводят на корень — это делают
+	# GF_SERVER_ROOT_URL и GF_SERVER_SERVE_FROM_SUB_PATH в оверлее.
+	handle /grafana* {
+		reverse_proxy grafana:3000
+	}
+
+	# Всё остальное — чат. Он и есть демо.
+	handle {
+		reverse_proxy openwebui:8080
+	}
+}

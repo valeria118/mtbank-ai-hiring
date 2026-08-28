@@ -1,0 +1,159 @@
+{
+  "uid": "mtbank-speech",
+  "title": "MTBank — речевая аналитика контакт-центра",
+  "tags": ["mtbank"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-6h", "to": "now"},
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Всего проанализировано звонков",
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 0},
+      "targets": [
+        {"expr": "mtbank_calls_total", "refId": "A", "legendFormat": "звонков"}
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Средний quality_score",
+      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "orange", "value": 60},
+              {"color": "green", "value": 75}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(mtbank_quality_score_sum) / clamp_min(sum(mtbank_quality_score_count), 1)",
+          "refId": "A",
+          "legendFormat": "средний балл"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Compliance-нарушений",
+      "gridPos": {"h": 5, "w": 6, "x": 12, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 1}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {"expr": "mtbank_compliance_failed_total", "refId": "A", "legendFormat": "нарушений"}
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Звонков за последний час",
+      "gridPos": {"h": 5, "w": 6, "x": 18, "y": 0},
+      "targets": [
+        {"expr": "increase(mtbank_calls_total[1h])", "refId": "A", "legendFormat": "за час"}
+      ]
+    },
+    {
+      "id": 5,
+      "type": "barchart",
+      "title": "Топ тематик обращений",
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 5},
+      "targets": [
+        {
+          "expr": "sum by (topic) (mtbank_calls_by_topic_total)",
+          "refId": "A",
+          "legendFormat": "{{topic}}",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "barchart",
+      "title": "Распределение quality_score",
+      "description": "Разности соседних бакетов гистограммы. Прямой sum by (le) (…_bucket) показал бы кумулятивные бакеты Prometheus — столбики росли бы слева направо всегда, независимо от данных, и это было бы не распределение.",
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 5},
+      "targets": [
+        {
+          "expr": "sum(mtbank_quality_score_bucket{le=\"40\"})",
+          "refId": "A",
+          "legendFormat": "0–40",
+          "instant": true
+        },
+        {
+          "expr": "sum(mtbank_quality_score_bucket{le=\"60\"}) - sum(mtbank_quality_score_bucket{le=\"40\"})",
+          "refId": "B",
+          "legendFormat": "40–60",
+          "instant": true
+        },
+        {
+          "expr": "sum(mtbank_quality_score_bucket{le=\"80\"}) - sum(mtbank_quality_score_bucket{le=\"60\"})",
+          "refId": "C",
+          "legendFormat": "60–80",
+          "instant": true
+        },
+        {
+          "expr": "sum(mtbank_quality_score_bucket{le=\"90\"}) - sum(mtbank_quality_score_bucket{le=\"80\"})",
+          "refId": "D",
+          "legendFormat": "80–90",
+          "instant": true
+        },
+        {
+          "expr": "sum(mtbank_quality_score_bucket{le=\"100\"}) - sum(mtbank_quality_score_bucket{le=\"90\"})",
+          "refId": "E",
+          "legendFormat": "90–100",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Динамика звонков по приоритету",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 14},
+      "targets": [
+        {
+          "expr": "sum by (priority) (rate(mtbank_calls_by_priority_total[5m]))",
+          "refId": "A",
+          "legendFormat": "{{priority}}"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "barchart",
+      "title": "Отказы агентов (анализ неполный)",
+      "description": "Агент не отработал — это отказ сервиса, а не результат проверки. Такие анализы намеренно не попадают ни в счётчик звонков, ни в гистограмму качества, ни в счётчик compliance-нарушений: иначе всплеск нарушений на дашборде означал бы всего лишь недоступность LLM.",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 22},
+      "targets": [
+        {
+          "expr": "sum by (agent) (mtbank_analyses_degraded_total)",
+          "refId": "A",
+          "legendFormat": "{{agent}}",
+          "instant": true
+        }
+      ]
+    }
+  ]
+}

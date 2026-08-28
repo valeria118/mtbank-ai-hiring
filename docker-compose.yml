@@ -1,0 +1,124 @@
+services:
+  # --- REST API (FastAPI /analyze) ---
+  api:
+    # Без политики контейнеры не возвращаются после перезапуска Docker или
+    # машины, и стек приходится поднимать руками. Та же, что в prod-варианте.
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Опциональная диаризация по голосу (pyannote.audio, тянет torch).
+        WITH_PYANNOTE: ${WITH_PYANNOTE:-false}
+        # Инструменты разработки (pytest, jiwer, edge-tts). В прод-образе не
+        # нужны; собрать с ними: WITH_DEV=true docker compose build
+        WITH_DEV: ${WITH_DEV:-false}
+    image: mtbank-speech-api:local
+    ports:
+      - "127.0.0.1:8080:8080"
+    env_file:
+      # См. комментарий у сервиса pipelines: стек поднимается без .env.
+      - path: .env
+        required: false
+    volumes:
+      - ./test_data:/app/test_data:ro
+      - ./data:/app/data
+      - whisper_cache:/root/.cache/huggingface
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # --- OpenWebUI Pipelines сервер (наш pipeline.py) ---
+  pipelines:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile.pipelines
+      args:
+        # То же, что у api — иначе образы разъедутся по составу.
+        WITH_PYANNOTE: ${WITH_PYANNOTE:-false}
+        WITH_DEV: ${WITH_DEV:-false}
+    ports:
+      # Только на loopback. OpenWebUI ходит сюда по внутренней сети compose
+      - "127.0.0.1:9099:9099"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - PIPELINES_API_KEY=${PIPELINES_API_KEY:-0p3n-w3bu!}
+    volumes:
+      - ./data:/app/data
+      - whisper_cache:/root/.cache/huggingface
+      - openwebui_data:/openwebui-data:ro
+
+  # --- OpenWebUI веб-интерфейс ---
+  openwebui:
+    image: ghcr.io/open-webui/open-webui:main
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:8080"
+    environment:
+      - OPENAI_API_BASE_URLS=http://pipelines:9099
+      - OPENAI_API_KEYS=${PIPELINES_API_KEY:-0p3n-w3bu!}
+      - WEBUI_AUTH=false
+    volumes:
+      - openwebui_data:/app/backend/data
+    depends_on:
+      - pipelines
+
+  # --- Провижининг OpenWebUI: выключает встроенный RAG для модели пайплайна.
+  openwebui-provision:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        WITH_PYANNOTE: ${WITH_PYANNOTE:-false}
+        WITH_DEV: ${WITH_DEV:-false}
+    image: mtbank-speech-api:local
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - OPENWEBUI_BASE_URL=http://openwebui:8080
+    command: ["python", "scripts/provision_openwebui.py"]
+    depends_on:
+      - openwebui
+    restart: "no"
+
+  # --- Prometheus: сбор метрик с api:8080/metrics ---
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - api
+
+  # --- Grafana: дашборд по метрикам (бонусное задание) ---
+  grafana:
+    image: grafana/grafana:11.2.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  openwebui_data:
+  whisper_cache:
+  prometheus_data:
+  grafana_data:

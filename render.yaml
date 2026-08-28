@@ -1,0 +1,98 @@
+
+services:
+  - name: mtbank-api
+    type: web
+    runtime: docker
+    plan: standard   # 2 ГБ: medium в int8 не влезает в 512 МБ starter'а
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    disk:
+      name: mtbank-data
+      mountPath: /app/data
+      sizeGB: 1
+    dockerCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: LLM_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: LLM_API_KEY
+        sync: false   # секрет — ввести значение в Render Dashboard при первом деплое
+      - key: LLM_MODEL
+        value: openai/gpt-oss-120b
+      - key: WHISPER_MODEL
+        value: medium
+      - key: WHISPER_DEVICE
+        value: cpu
+      - key: WHISPER_COMPUTE_TYPE
+        value: int8
+      - key: WHISPER_LANGUAGE
+        value: ru
+      - key: WHISPER_BATCH_SIZE
+        value: "8"
+      - key: MAX_AUDIO_DURATION_SEC
+        value: "600"
+      - key: DB_PATH
+        value: data/calls.db
+      - key: OPENWEBUI_BASE_URL
+        value: https://mtbank-openwebui.onrender.com
+      - key: LOG_LEVEL
+        value: INFO
+      - key: LOG_JSON
+        value: "true"
+
+  - name: mtbank-pipelines
+    type: pserv
+    runtime: docker
+    plan: standard   # 2 ГБ: medium в int8 не влезает в 512 МБ starter'а
+    dockerfilePath: ./Dockerfile.pipelines
+    dockerContext: .
+    disk:
+      name: mtbank-pipelines-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - key: PORT
+        value: "9099"
+      - key: PIPELINES_API_KEY
+        generateValue: true   # Render сгенерирует секрет; то же значение прописать в mtbank-openwebui
+      - key: LLM_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        value: openai/gpt-oss-120b
+      - key: WHISPER_MODEL
+        value: medium
+      - key: WHISPER_DEVICE
+        value: cpu
+      - key: WHISPER_COMPUTE_TYPE
+        value: int8
+      - key: WHISPER_LANGUAGE
+        value: ru
+      - key: MAX_AUDIO_DURATION_SEC
+        value: "600"
+      - key: DB_PATH
+        value: data/calls.db
+      - key: OPENWEBUI_BASE_URL
+        value: https://mtbank-openwebui.onrender.com
+      - key: OPENWEBUI_API_KEY
+        sync: false
+      - key: LOG_LEVEL
+        value: INFO
+      - key: LOG_JSON
+        value: "true"
+
+  - name: mtbank-openwebui
+    type: web
+    runtime: image
+    plan: starter
+    image:
+      url: ghcr.io/open-webui/open-webui:main
+    envVars:
+      - key: OPENAI_API_BASE_URLS
+        value: http://mtbank-pipelines:9099
+      - key: OPENAI_API_KEYS
+        sync: false   # то же значение, что PIPELINES_API_KEY у mtbank-pipelines
+      - key: WEBUI_AUTH
+        value: "false"   # без трения для проверяющего; см. предупреждение в docs/deployment.md
+

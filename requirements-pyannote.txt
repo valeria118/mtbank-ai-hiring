@@ -1,0 +1,27 @@
+# Опциональный бэкенд диаризации по голосу — pyannote.audio.
+# Ставится ПОВЕРХ requirements.txt и только при сборке с WITH_PYANNOTE=true
+# (см. docker-compose.yml). Без него DIARIZATION_BACKEND=auto продолжает
+# работать на эвристике по паузам: asr/diarizer.py ловит ImportError и молча
+# откатывается. Режим DIARIZATION_BACKEND=pyannote в таком образе упадёт с
+# ошибкой — это осознанно, явный выбор бэкенда не должен подменяться тихо.
+#
+# Колёса берём с CPU-индекса PyTorch, а не с PyPI: там torch тянет за собой
+# весь CUDA-стек (nvidia-cublas/cudnn/cufft/cusolver/nccl/cusparselt + triton)
+# — 2.7 ГБ колёс против ~300 МБ. GPU здесь не нужен: на CUDA в этом проекте
+# считает faster-whisper, а он работает через ctranslate2, не через torch.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# torchaudio больше не развивается отдельно от torch (последний релиз —
+# 2.11.0, torch тем временем ушёл на более новые версии) — версии закреплены
+# строго парой, иначе pip тянет несовместимые torch/torchaudio и pyannote
+# падает на импорте (AttributeError: module 'torchaudio' has no attribute
+# 'AudioMetaData').
+torch==2.11.0+cpu
+torchaudio==2.11.0+cpu
+# torchcodec — им pyannote.audio 4.x читает аудио. Зависимости от torch в
+# метаданных пакета НЕТ, хотя расширение собрано под конкретную версию: pip
+# молча поставит последнюю (0.16.x под torch 2.13), и падать это будет уже в
+# рантайме, на импорте. 0.11.1 — ровно под наш torch 2.11 ("compatible with
+# torch 2.11" в release notes).
+torchcodec==0.11.1+cpu
+pyannote.audio==4.0.7

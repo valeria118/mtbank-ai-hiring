@@ -1,0 +1,45 @@
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DEMO_HOSTNAME=${DEMO_HOSTNAME:?укажите DEMO_HOSTNAME в .env — например mtbank-demo.duckdns.org}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data      # сертификаты; переживает пересоздание контейнера
+      - caddy_config:/config
+    depends_on:
+      - openwebui
+      - api
+      - grafana
+
+  api:
+    restart: unless-stopped
+    environment:
+      - WHISPER_MODEL=${WHISPER_MODEL:-medium}
+      - API_ROOT_PATH=/api
+
+  pipelines:
+    restart: unless-stopped
+    environment:
+      - PIPELINES_API_KEY=${PIPELINES_API_KEY:-0p3n-w3bu!}
+      - WHISPER_MODEL=${WHISPER_MODEL:-medium}
+
+  openwebui:
+    restart: unless-stopped
+
+  prometheus:
+    restart: unless-stopped
+
+  grafana:
+    restart: unless-stopped
+    environment:
+      - GF_SERVER_ROOT_URL=https://${DEMO_HOSTNAME}/grafana
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+
+volumes:
+  caddy_data:
+  caddy_config:

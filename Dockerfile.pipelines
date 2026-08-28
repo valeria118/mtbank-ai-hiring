@@ -1,0 +1,48 @@
+FROM ghcr.io/open-webui/pipelines:main
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG WITH_PYANNOTE=false
+
+ARG WITH_DEV=false
+
+COPY requirements.txt /app/mtbank_requirements.txt
+COPY requirements-pyannote.txt /app/mtbank_requirements_pyannote.txt
+COPY requirements-dev.txt /app/mtbank_requirements_dev.txt
+RUN pip install --no-cache-dir -r /app/mtbank_requirements.txt \
+    && if [ "$WITH_PYANNOTE" = "true" ]; then \
+        pip install --no-cache-dir -r /app/mtbank_requirements_pyannote.txt; \
+    fi \
+    && if [ "$WITH_DEV" = "true" ]; then \
+        pip install --no-cache-dir -r /app/mtbank_requirements_dev.txt; \
+    fi
+
+RUN mkdir -p /app/mtbank
+COPY config.py /app/mtbank/config.py
+COPY logging_utils.py /app/mtbank/logging_utils.py
+COPY storage.py /app/mtbank/storage.py
+COPY metrics.py /app/mtbank/metrics.py
+COPY pipeline.py /app/mtbank/pipeline.py
+COPY agents /app/mtbank/agents
+COPY asr /app/mtbank/asr
+RUN touch /app/mtbank/__init__.py
+
+RUN find /app/mtbank -name '*.py' -exec sed -i \
+    -e 's/^from config import/from mtbank.config import/' \
+    -e 's/^from logging_utils import/from mtbank.logging_utils import/' \
+    -e 's/^import storage$/import mtbank.storage as storage/' \
+    -e 's/^import metrics$/import mtbank.metrics as metrics/' \
+    -e 's/^from agents\./from mtbank.agents./' \
+    -e 's/^from asr\./from mtbank.asr./' \
+    -e 's/^from pipeline import/from mtbank.pipeline import/' \
+    {} \;
+
+COPY docker/mtbank_pipeline_entrypoint.py /app/pipelines/mtbank_pipeline.py
+
+ENV METRICS_EXPORTER_ENABLED=true
+EXPOSE 9100

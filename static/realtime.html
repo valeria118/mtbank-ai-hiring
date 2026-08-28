@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>MTBank — потоковая транскрибация</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+  button { font-size: 16px; padding: 10px 20px; cursor: pointer; }
+  #log { margin-top: 24px; white-space: pre-wrap; line-height: 1.6; }
+  .meta { color: #666; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>Потоковая транскрибация</h1>
+<p class="meta">Микрофон → PCM16 16 кГц → WebSocket → faster-whisper. Окно 2.5 сек.</p>
+<button id="toggle">Начать запись</button>
+<div id="log"></div>
+
+<script>
+const SAMPLE_RATE = 16000;
+let ctx, source, processor, socket, recording = false;
+const log = document.getElementById("log");
+const toggle = document.getElementById("toggle");
+
+function appendLine(text, latency) {
+  const div = document.createElement("div");
+  div.textContent = text + (latency ? `  (${latency} мс)` : "");
+  log.appendChild(div);
+}
+
+async function start() {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1 } });
+  ctx = new AudioContext({ sampleRate: SAMPLE_RATE });
+  source = ctx.createMediaStreamSource(stream);
+  processor = ctx.createScriptProcessor(4096, 1, 1);
+
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  // Адрес сокета строим от пути самой страницы, а не от корня хоста: в
+  // прод-деплое API стоит за прокси под префиксом (/api/realtime), и
+  // жёсткий /ws/transcribe уходил бы мимо API — в чат OpenWebUI.
+  const base = location.pathname.replace(/\/realtime\/?$/, "");
+  socket = new WebSocket(`${proto}://${location.host}${base}/ws/transcribe`);
+  socket.binaryType = "arraybuffer";
+  socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    (data.segments || []).forEach((s) => appendLine(`[${s.start}-${s.end}] ${s.text}`, data.latency_ms));
+  };
+
+  processor.onaudioprocess = (event) => {
+    if (socket.readyState !== WebSocket.OPEN) return;
+    const input = event.inputBuffer.getChannelData(0);
+    const pcm = new Int16Array(input.length);
+    for (let i = 0; i < input.length; i++) {
+      const clamped = Math.max(-1, Math.min(1, input[i]));
+      pcm[i] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff;
+    }
+    socket.send(pcm.buffer);
+  };
+
+  source.connect(processor);
+  processor.connect(ctx.destination);
+  recording = true;
+  toggle.textContent = "Остановить";
+}
+
+function stop() {
+  if (processor) processor.disconnect();
+  if (source) source.disconnect();
+  if (ctx) ctx.close();
+  // Не закрываем сокет сразу: хвост буфера короче окна и сам не отправится.
+  // Просим сервер дотранскрибировать его, он пришлёт {"type":"final"} и
+  // закроет соединение сам. Если сокет уже не открыт — просто закрываем.
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.send("stop");
+  } else if (socket) {
+    socket.close();
+  }
+  recording = false;
+  toggle.textContent = "Начать запись";
+}
+
+toggle.onclick = () => (recording ? stop() : start());
+</script>
+</body>
+</html>

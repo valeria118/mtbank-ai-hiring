@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  # REST API: /metrics отдаёт сам FastAPI.
+  - job_name: mtbank-api
+    static_configs:
+      - targets: ["api:8080"]
+
+  - job_name: mtbank-pipelines
+    static_configs:
+      - targets: ["pipelines:9100"]

@@ -1,0 +1,24 @@
+venv/
+.venv/
+__pycache__/
+.pytest_cache/
+.git/
+.env
+
+# Артефакты эксперимента с PyInstaller и логи сборки. В образе им делать
+# нечего, а в контексте сборки это ~330 МБ из 360 — Docker пересылает их
+# демону на каждый build.
+build/
+dist/
+*.spec
+*.log
+
+# Локальная история анализов: монтируется томом (docker-compose.yml), а
+# storage.py всё равно создаёт каталог сам (storage.py:39). Копировать в
+# образ чужую SQLite не нужно.
+data/
+
+# Сертификаты и состояние Caddy живут в docker-томах (docker-compose.prod.yml),
+# в контексте сборки их быть не должно.
+caddy_data/
+caddy_config/

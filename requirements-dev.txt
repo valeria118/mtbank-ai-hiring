@@ -1,0 +1,17 @@
+# Инструменты разработки. В прод-образы не попадают: `docker compose build`
+# по умолчанию собирает без них (см. ARG WITH_DEV в Dockerfile).
+#
+# Собрать образ, в котором можно гонять тесты и WER-прогон:
+#   docker compose build --build-arg WITH_DEV=true
+#
+# Здесь нет ни requests, ни pytest-mock: первый не использовался в коде
+# вообще, второй — ни в одном тесте.
+
+pytest==8.3.3
+pytest-asyncio==0.24.0
+
+# scripts/run_wer_eval.py — расчёт WER/CER по эталонным транскриптам.
+jiwer==3.0.4
+
+# test_data/generate_test_data.py — синтез тестового аудио (TTS).
+edge-tts==7.2.8
