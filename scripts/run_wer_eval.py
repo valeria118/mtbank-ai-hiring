@@ -82,8 +82,8 @@ def role_accuracy(
 
 def main() -> None:
     transcriber = Transcriber()
-    print("Прогреваю модель…")
-    transcriber.warmup()
+    #print("Прогреваю модель…")
+    #transcriber.warmup()
 
     rows = []
 

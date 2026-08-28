@@ -16,12 +16,15 @@
 # строго парой, иначе pip тянет несовместимые torch/torchaudio и pyannote
 # падает на импорте (AttributeError: module 'torchaudio' has no attribute
 # 'AudioMetaData').
-torch==2.11.0+cpu
-torchaudio==2.11.0+cpu
-# torchcodec — им pyannote.audio 4.x читает аудио. Зависимости от torch в
-# метаданных пакета НЕТ, хотя расширение собрано под конкретную версию: pip
-# молча поставит последнюю (0.16.x под torch 2.13), и падать это будет уже в
-# рантайме, на импорте. 0.11.1 — ровно под наш torch 2.11 ("compatible with
-# torch 2.11" в release notes).
-torchcodec==0.11.1+cpu
+torch==2.11.0
+torchaudio==2.11.0
+# torchvision мы напрямую не используем, но образ ghcr.io/open-webui/pipelines
+# уже содержит его (собранный под torch==2.8.0, под примеры пайплайнов из
+# коробки OpenWebUI) — при обновлении torch до 2.11.0 старый torchvision
+# рассинхронизируется и падает с "partially initialized module 'torchvision'
+# has no attribute 'extension' (circular import)", как только что-то в цепочке
+# импортов pyannote его затрагивает (обнаружено при живом запуске). Явно
+# закрепляем версию, требующую ровно torch==2.11.0, чтобы pip поставил
+# совместимую, а не оставил старую от базового образа.
+torchvision==0.26.0
 pyannote.audio==4.0.7

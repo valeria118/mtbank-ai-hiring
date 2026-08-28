@@ -30,8 +30,10 @@ edge-tts==7.2.8
 # torch тем временем ушёл на более новые версии) — версии закреплены строго
 # парой, иначе pip тянет несовместимые torch/torchaudio и pyannote падает на
 # импорте (AttributeError: module 'torchaudio' has no attribute 'AudioMetaData').
-torch==2.11.0
-torchaudio==2.11.0
+
+# torch==2.11.0
+# torchaudio==2.11.0
+
 # torchvision мы напрямую не используем, но образ ghcr.io/open-webui/pipelines
 # уже содержит его (собранный под torch==2.8.0, под примеры пайплайнов из
 # коробки OpenWebUI) — при обновлении torch до 2.11.0 старый torchvision
@@ -40,8 +42,9 @@ torchaudio==2.11.0
 # импортов pyannote его затрагивает (обнаружено при живом запуске). Явно
 # закрепляем версию, требующую ровно torch==2.11.0, чтобы pip поставил
 # совместимую, а не оставил старую от базового образа.
-torchvision==0.26.0
-pyannote.audio==4.0.7
+
+# torchvision==0.26.0
+# pyannote.audio==4.0.7
 
 # тесты
 pytest==8.3.3
