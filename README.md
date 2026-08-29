@@ -206,9 +206,8 @@ uvicorn api.main:app --reload --port 8080
 | Что | Адрес |
 |---|---|
 | Чат OpenWebUI — главный сценарий | `https://104-155-85-230.sslip.io/` |
-| REST API | `https://<host>/api/analyze` |
-| Swagger | `https://<host>/api/docs` |
-| Потоковая транскрибация (бонус) | `https://<host>/api/realtime` |
+| REST API, Swagger | `https://104-155-85-230.sslip.io/docs` |
+| Потоковая транскрибация (бонус) | `https://104-155-85-230.sslip.io/realtime` |
 | Grafana-дашборд (бонус) | `https://104-155-85-230.sslip.io/grafana/dashboards` |
 
 Демо разворачивается на обычной Linux-VM тем же `docker compose`, оверлеем
