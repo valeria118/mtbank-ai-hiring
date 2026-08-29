@@ -141,6 +141,13 @@
 
 ---
 
+## Как это выглядит
+
+![Отчёт по звонку в чате OpenWebUI](docs/screenshots/chat-report.png)
+*Прикреплённый аудиофайл и готовый отчёт с оценкой качества, compliance и транскриптом*
+
+---
+
 ## Быстрый старт
 
 ```bash
@@ -238,6 +245,9 @@ Content-Type: application/json
 Body: {"url": "https://example.com/call.wav"}
 ```
 
+![Swagger UI](docs/screenshots/swagger-api.png)
+*Интерактивная документация API на /docs*
+
 В ответ приходит JSON строго по схеме задания:
 
 ```json
@@ -277,6 +287,12 @@ Body: {"url": "https://example.com/call.wav"}
 | Агент трендов (+5) | ✅ | [`agents/trends.py`](agents/trends.py), `GET /trends`, команда `тренды` в чате |
 | Grafana-дашборд (+5) | ✅ | [`deploy/grafana/`](deploy/grafana/), порт `3001`, датасорс и дашборд провижинятся сами |
 | Real-time WebSocket (+5) | ⚠️ реализован, порог не выдержан | [`realtime.py`](realtime.py), `WS /ws/transcribe`, страница `GET /realtime` |
+
+![Grafana-дашборд](docs/screenshots/grafana-dashboard.png)
+*Дашборд с метриками пайплайна*
+
+![Страница потоковой транскрибации](docs/screenshots/realtime-page.png)
+*WS /ws/transcribe — потоковая транскрибация в браузере*
 
 Агент трендов работает со сводками нескольких звонков из `storage.py`, а не с
 одним транскриптом, поэтому он не проходит через `AgentOrchestrator`. В
