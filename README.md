@@ -492,7 +492,9 @@ mtbank-ai-hiring/
 │
 ├── docs/                    # Документация
 │   ├── sample-dialog.md     # Сценарий тестового диалога
-│   └── deployment.md        # Инструкция по деплою (Render, RunPod, VM)
+│   ├── deployment.md        # Инструкция по деплою (Render, RunPod, VM)
+│   └── screenshots/         # Демонстрация
+│       └── ...
 │
 ├── .env.example             # Пример конфигурации (с подробными комментариями)
 ├── .dockerignore
