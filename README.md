@@ -438,23 +438,74 @@ mtbank-ai-hiring/
 ├── config.py                # pydantic-settings, читает .env
 ├── storage.py               # SQLite: история анализов
 ├── metrics.py               # Prometheus-метрики (бонус)
-├── realtime.py              # буферизация потоковой транскрибации (бонус)
-├── logging_utils.py         # JSON-логи, включая вход/выход агентов
-├── agents/                  # llm_client, base, 4 агента, trends, orchestrator
-├── asr/                     # transcriber (faster-whisper), diarizer (3 стратегии)
-├── api/main.py              # /analyze, /trends, /metrics, /ws/transcribe, /health
-├── docker/                  # обёртка, которую сканирует сервер Pipelines
-├── deploy/                  # prometheus.yml, Caddyfile, grafana/
-├── tests/                   # 13 файлов, 165 тестов
-├── test_data/               # 13 аудиофайлов + эталоны + генератор
-├── scripts/                 # run_wer_eval, provision_openwebui, deploy_vm.sh
-├── docs/                    # sample-dialog.md, deployment.md
-├── docker-compose.yml       # api + pipelines + openwebui + provision + prometheus + grafana
-├── docker-compose.prod.yml  # оверлей демо: Caddy, HTTPS, medium
-├── docker-compose.gpu.yml   # GPU-оверлей
+├── realtime.py              # Буферизация потоковой транскрибации (бонус)
+├── logging_utils.py         # JSON-логи, включая вход/выход каждого агента
+│
+├── agents/                  # LLM-агенты
+│   ├── base.py              # Базовый класс и утилиты
+│   ├── llm_client.py        # OpenAI-совместимый клиент
+│   ├── orchestrator.py      # Оркестрация 4 агентов (asyncio.gather)
+│   ├── classifier.py        # Агент 1: Тематика + приоритет
+│   ├── quality.py           # Агент 2: Чеклист качества
+│   ├── compliance.py        # Агент 3: Запреты + обязательные disclaimers
+│   ├── summarizer.py        # Агент 4: Резюме + action items
+│   └── trends.py            # Агент трендов (бонус)
+│
+├── asr/                     # Речевые технологии
+│   ├── transcriber.py       # faster-whisper обёртка
+│   └── diarizer.py          # Диаризация (стерео/pyannote/эвристика)
+│
+├── api/                     # REST API
+│   └── main.py              # FastAPI: /analyze, /trends, /metrics, /ws/transcribe
+│
+├── docker/                  # Обёртка для сервера OpenWebUI Pipelines
+│
+├── deploy/                  # Инфраструктура и деплой
+│   ├── prometheus.yml       # Конфиг Prometheus
+│   ├── Caddyfile            # Реверс-прокси для prod-деплоя
+│   └── grafana/             # Провижининг и JSON-дашборды (бонус)
+│
+├── scripts/                 # Вспомогательные скрипты
+│   ├── run_wer_eval.py      # Расчет WER/CER по эталонам
+│   ├── provision_openwebui.py # Автонастройка OpenWebUI (отключение RAG)
+│   └── deploy_vm.sh         # Скрипт деплоя на Linux-VM
+│
+├── static/                  # Статика для веб-страниц
+│   └── realtime.html        # Демо-страница потокового режима (бонус)
+│
+├── tests/                   # Тесты (165 шт.)
+│   ├── conftest.py          # Общие фикстуры
+│   ├── test_agents.py       # Unit-тесты каждого агента
+│   ├── test_pipeline.py     # Интеграционные тесты pipeline
+│   ├── test_api.py          # Контракт REST API
+│   └── test_diarizer.py     # Тесты стратегий диаризации
+│
+├── test_data/               # Тестовые аудио + эталоны (13 файлов)
+│   ├── generate_test_data.py# Генератор аудио через edge-tts
+│   ├── call_dialog_stereo.wav
+│   ├── call_dialog_mono.wav
+│   ├── call_dialog_8khz.wav
+│   ├── call_complaint_mono.wav
+│   ├── short_complaint.ogg
+│   ├── short_credit_question.mp3
+│   └── ...                  # + эталонные .txt файлы
+│
+├── docs/                    # Документация
+│   ├── sample-dialog.md     # Сценарий тестового диалога
+│   └── deployment.md        # Инструкция по деплою (Render, RunPod, VM)
+│
+├── .env.example             # Пример конфигурации (с подробными комментариями)
+├── .dockerignore
+├── .gitignore
 ├── Dockerfile               # FastAPI-сервис
-├── Dockerfile.pipelines     # сервер OpenWebUI Pipelines
-├── render.yaml              # Blueprint для Render
-├── requirements*.txt        # основные / dev / pyannote
-└── .env.example
+├── Dockerfile.pipelines     # Сервер OpenWebUI Pipelines
+├── docker-compose.yml       # Локальный стек: API + Pipelines + OpenWebUI + Grafana
+├── docker-compose.prod.yml # Prod-оверлей: Caddy, HTTPS, модель medium
+├── docker-compose.gpu.yml   # GPU-оверлей для ускорения ASR
+├── render.yaml              # Blueprint для деплоя на Render
+├── pytest.ini               # Настройки pytest
+├── requirements.txt         # Основные зависимости
+├── requirements-dev.txt     # Dev-зависимости (pytest, jiwer, edge-tts)
+├── requirements-pyannote.txt # Опц. зависимости для диаризации (torch)
+└── README.md                # Полная документация проекта
 ```
