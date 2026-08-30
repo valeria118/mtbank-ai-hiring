@@ -205,10 +205,10 @@ uvicorn api.main:app --reload --port 8080
 
 | Что | Адрес |
 |---|---|
-| Чат OpenWebUI — главный сценарий | `https://104-155-85-230.sslip.io/` |
-| REST API, Swagger | `https://104-155-85-230.sslip.io/docs` |
-| Потоковая транскрибация (бонус) | `https://104-155-85-230.sslip.io/realtime` |
-| Grafana-дашборд (бонус) | `https://104-155-85-230.sslip.io/grafana/dashboards` |
+| Чат OpenWebUI — главный сценарий | https://104-155-85-230.sslip.io/ |
+| REST API, Swagger | https://104-155-85-230.sslip.io/docs |
+| Потоковая транскрибация (бонус) | https://104-155-85-230.sslip.io/realtime |
+| Grafana-дашборд (бонус) | https://104-155-85-230.sslip.io/grafana/dashboards |
 
 Демо разворачивается на обычной Linux-VM тем же `docker compose`, оверлеем
 [`docker-compose.prod.yml`](docker-compose.prod.yml): он добавляет Caddy
